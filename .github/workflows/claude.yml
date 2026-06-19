@@ -12,11 +12,7 @@ on:
 
 jobs:
   claude:
-    if: |
-      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
-      (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
-      (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude')) ||
-      (github.event_name == 'issues' && (contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude')))
+    if: contains(github.event.comment.body, '@claude') || contains(github.event.issue.body, '@claude')
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -24,12 +20,34 @@ jobs:
       issues: write
       id-token: write
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
+      - uses: actions/checkout@v4
 
-      - name: Run Claude Code
-        uses: anthropics/claude-code-action@beta
+      - name: Project Setup
+        run: |
+          npm install
+          npm run dev &
+          sleep 5
+
+      - uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          custom_instructions: |
+            This is a Next.js project (uigen) that generates React components via AI.
+            Dependencies are already installed.
+            The dev server is already running at localhost:3000.
+            If needed, use the mcp__playwright set of tools to launch a browser
+            and visually inspect the app or test generated components.
+          mcp_config: |
+            {
+              "mcpServers": {
+                "playwright": {
+                  "command": "npx",
+                  "args": [
+                    "@playwright/mcp@latest",
+                    "--allowed-origins",
+                    "localhost:3000;cdn.tailwindcss.com;esm.sh"
+                  ]
+                }
+              }
+            }
+          allowed_tools: "Bash(npm:*),mcp__playwright__browser_snapshot,mcp__playwright__browser_click,mcp__playwright__browser_navigate,mcp__playwright__browser_take_screenshot,mcp__playwright__browser_type"
