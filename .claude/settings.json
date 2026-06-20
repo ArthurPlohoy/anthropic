@@ -1,5 +1,16 @@
 {
   "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Read|Grep",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "input=$(cat); path=$(echo \"$input\" | jq -r '.tool_input.file_path // .tool_input.pattern // empty'); if echo \"$path\" | grep -q '\\.env'; then echo '{\"decision\":\"block\",\"reason\":\"Reading .env files is not allowed\"}'; fi"
+          }
+        ]
+      }
+    ],
     "PostToolUse": [
       {
         "matcher": "Write|Edit",
